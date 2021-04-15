@@ -37,6 +37,12 @@ import copy
 
 
 def getCombinedMDFO(runStart, runEnd):
+    """
+    Inputs: runStart->int,runEnd->int
+    Output: MuDataFrame Object
+    Process: it combines the runfiles defined in the input from runStart to runEnd and
+             returns a comprehensive MuDataFrame Object with all the run information
+    """
     r1, r2 = runStart, runEnd
     lead_files = [
         "processed_data/run{}.csv".format(i) for i in range(r1, r2 + 1)
@@ -61,6 +67,12 @@ def getCombinedMDFO(runStart, runEnd):
 
 
 def getEmissionOutputCSV(df, fileName):
+    """
+    Inputs: df-dataframe,fileName-string
+    Output: NA
+    Process: it resets the index of df and accesses a csv file
+    """
+    
     df.events_df.reset_index(drop=True, inplace=True)
     df.events_df.to_csv(fileName)
 
@@ -69,10 +81,20 @@ np.warnings.filterwarnings('ignore')
 
 
 def getPhysicalUnits(asym):
+    """
+    Inputs: asym-float
+    Output: float
+    Process: it just multiplies asym by 55/.6
+    """    
     return (55 / 0.6) * asym
 
 
 def getXatZPlane(x1, x2, zplane, dsep):
+    """
+    Inputs: x1,x2-array, zplane,dsep-int
+    Output: float
+    Process: it uses the given data to project x onto the plane of interest
+    """    
     x = (zplane / dsep) * (getPhysicalUnits(x1) -
                            getPhysicalUnits(x2)) + getPhysicalUnits(x1)
     return x
@@ -80,6 +102,11 @@ def getXatZPlane(x1, x2, zplane, dsep):
 
 # CODE FOR COUNTING
 def append_pdf(input, output):
+    """
+    Inputs: input,output-file
+    Output: NA
+    Process: it adds the input to the output, page by page
+    """    
     [
         output.addPage(input.getPage(page_num))
         for page_num in range(input.numPages)
@@ -87,6 +114,11 @@ def append_pdf(input, output):
 
 
 def parallelize_dataframe(df, func, path, n_cores=2):
+    """
+    Inputs: df,func-dataframe,path=string,n_cores=2 
+    Output: dataframe
+    Process: it splits the workload of analyzing the dataframe in two processes
+    """    
     df_split = np.array_split(df, n_cores)
     pool = Pool(n_cores)
     df = pd.concat(pool.map(func, df_split))
@@ -99,10 +131,20 @@ def parallelize_dataframe(df, func, path, n_cores=2):
 
 
 def getAsymmetryUnits(phys):
+    """
+    Inputs: phys-float
+    Output: float
+    Process: it just multiplies phys by .6/.55
+    """    
     return (0.6 / 0.55) * phys
 
 
 def remove_if_first_index(l):
+    """
+    Inputs: l-dataframe
+    Output: dataframe
+    Process: it removes items in a dataframe if they are part of the first index
+    """
     return [
         item for index, item in enumerate(l)
         if item[0] not in [value[0] for value in l[0:index]]
@@ -110,6 +152,11 @@ def remove_if_first_index(l):
 
 
 def conditionParser_multiple(df, conditions):
+    """
+    Inputs: df-dataframe,conditions-string
+    Output: dataframe
+    Process: it takes a series of conditions (=,<,>,<=,>=,!=) and applies them to df
+    """    
     qt, op, val = conditions.split(" ")
     if op == "==":
         df = df[df[qt] == float(val)]
@@ -133,6 +180,11 @@ def conditionParser_multiple(df, conditions):
 
 
 def conditionParser_single(df, conditions):
+    """
+    Inputs: df-dataframe,conditions-string
+    Output: dataframe
+    Process: it takes a series of conditions (=,<,>,<=,>=,!=) and applies them to df it also tests a block for errors
+    """    
     qt, op, val = conditions[0].split(" ")
     if op == "==":
         try:
@@ -160,6 +212,11 @@ def conditionParser_single(df, conditions):
 
 
 def getFilteredEvents(self, df, conditions):
+    """
+    Inputs: df-dataframe,conditions-string
+    Output: dataframe
+    Process: it takes a series of conditions (=,<,>,<=,>=,!=) and applies them to df it also tests a block for errors
+    """
     numConditions = len(conditions)
     if numConditions == 1:
         qt, op, val = conditions[0].split(" ")
@@ -178,6 +235,11 @@ def getFilteredEvents(self, df, conditions):
 
 
 def scrubbedDataFrame(df, queryName, numStd):
+    """
+    Inputs: df-dataframe, queryName-string, numStd-float
+    Output: dataframe
+    Process: filters the dataframe by removing elements that are more than one standard deviation away
+    """
     s = df[queryName]
     s_mean = s.mean()
     s_std = s.std()
@@ -188,6 +250,11 @@ def scrubbedDataFrame(df, queryName, numStd):
 
 
 def getHistogram(df, queryName, title="", nbins=200):
+    """
+    Inputs: df-dataframe, queryName-string
+    Output: NA
+    Process: creates a histogram plot of df
+    """    
     s = df[queryName]
     ax = s.plot.hist(alpha=0.7, bins=nbins, histtype='step')
     mean, std, count = s.describe().values[1], s.describe(
@@ -206,6 +273,11 @@ def getHistogram(df, queryName, title="", nbins=200):
 
 
 def getFilteredHistogram(df, queryName, filter, nbins=200, title=""):
+    """
+    Inputs: df-dataframe, queryName-string
+    Output: NA
+    Process: creates a histogram plot of df
+    """
     df.hist(column=queryName, bins=nbins, by=filter, histtype='step')
     plt.suptitle("Histograms of {} grouped by {} {}".format(
         queryName, filter, title))
@@ -245,6 +317,11 @@ class MuDataFrame:
         self.total = len(self.og_df.index)
 
     def longDataMode(self, zplane=42, dsep=165):
+    """
+    Inputs:
+    Output: NA
+    Process: it initializes some commands
+    """
         self.getProjectionData(zplane, dsep)
         self.getProjectionData_diff(zplane, dsep)
         self.getFixedEventNums()
@@ -252,6 +329,11 @@ class MuDataFrame:
         self.getSerializedTimes()
 
     def classifyDateTime(self):
+    """
+    Inputs: 
+    Output: 
+    Process: it standardizes the hour and minute and defines whether it is day or night
+    """
         timestamps = self.get("event_time")
         label = []
         for timestamp in timestamps:
@@ -265,6 +347,11 @@ class MuDataFrame:
         self.events_df["time_of_day"] = label
 
     def getProjectionData_diff(self, zplane=42, dsep=165):
+    """
+    Inputs:
+    Output:
+    Process: it creates arrays xx1 and yy1 that are projections on the plane of interest
+    """
         xx_lead = getXatZPlane_diffTDC(self.get("diffL1"), self.get("diffL3"),
                                        zplane, dsep)
         yy_lead = getXatZPlane_diffTDC(self.get("diffL2"), self.get("diffL4"),
@@ -274,6 +361,11 @@ class MuDataFrame:
         self.events_df["yy1"] = yy_lead
 
     def getProjectionData(self, zplane=42, dsep=165):
+    """
+    Inputs:
+    Output:
+    Process: it creates arrays xx and yy that are projections on the plane of interest
+    """
         xx_lead = getXatZPlane(self.get("asymL1"), self.get("asymL3"), zplane,
                                dsep)
         yy_lead = getXatZPlane(self.get("asymL2"), self.get("asymL4"), zplane,
@@ -283,11 +375,21 @@ class MuDataFrame:
         self.events_df["yy"] = yy_lead
 
     def getFixedEventNums(self):
+    """
+    Inputs:
+    Output:
+    Process: it creates an array which contains the event numbers
+    """
         num_lead_events = len(self.events_df.index)
         lead_events_seq = [i for i in range(num_lead_events)]
         self.events_df["event_num"] = lead_events_seq
 
     def getSerializedTimes(self):
+    """
+    Inputs:
+    Output:
+    Process: it creates an array which contains the timestamps of the events
+    """
         times_lead = np.array([
             datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
             for date in self.events_df["event_time"].values
@@ -299,14 +401,29 @@ class MuDataFrame:
         self.events_df["time"] = times_l1
 
     def addRunNumColumn(self, df):
+    """
+    Inputs: df-dataframe
+    Output: dataframe
+    Process: it adds runNum to the dataframe
+    """
         df["Run_Num"] = int(self.runNum)
         return df
 
     def addInfoColumn(self, df, term, term2):
+    """
+    Inputs: term,term2-string
+    Output: dataframe
+    Process: it adds term to the dataframe
+    """
         df[term2] = self.events_df[term]
         return df
 
     def getMergedMDF(self, df_list):
+    """
+    Inputs: df_list-array
+    Output: dataframe
+    Process: it concatenates the dataset and resets the index
+    """
         df = pd.concat(df_list).reset_index()
         return df
 
