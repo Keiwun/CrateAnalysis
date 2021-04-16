@@ -428,19 +428,43 @@ class MuDataFrame:
         return df
 
     def getJnbDf(self, df):
+    """
+    Inputs: df-dataframe
+    Output: QGrid Widget instance
+    Process: it creates a QGrid Widget instance. the documentation is here: https://qgrid.readthedocs.io/en/latest/#qgrid.show_grid.
+    it's essentially for data analysis
+    """
         return qgrid.show_grid(df, show_toolbar=True)
 
     def sendReportEmail(self):
+    """
+    Inputs: 
+    Output:
+    Process: it sends an email with the pdf and csv containing the analysis.
+    Commands are from Notify.py. 
+    """    
         csvName = "processed_data/events_data_frame_{}.csv.gz".format(
             self.runNum)
         Notify().sendPdfEmail(self.pdfName, csvName)
 
     def sendReportEmailRecovery(self):
+    """
+    Inputs:
+    Output:
+    Process: it sends an email with the pdf containing the analysis. however,
+    it is subtly different as it doesn't include the pdf. Commands are from
+    Notify.py.
+    """
         csvName = "processed_data/events_data_frame_{}.csv.gz".format(
             self.runNum)
         Notify().sendEmailRecovery(self.pdfName, csvName)
 
     def getCompleteCSVOutputFile(self):
+    """
+    Inputs:
+    Output:
+    Process: it creates a csv file exlcuding the data seen below (ADC, ADC1, etc.)
+    """
         df = self.events_df.copy()
         df.drop('ADC', axis=1, inplace=True)
         df.drop('ADC1', axis=1, inplace=True)
@@ -470,6 +494,11 @@ class MuDataFrame:
         print("{} has been created".format(name))
 
     def getCompleteCSVOutputFile_og(self):
+    """
+    Inputs:
+    Output:
+    Process: it creates a csv file excluding ADC and TDC
+    """
         df = self.events_df.copy()
         df.drop('ADC', axis=1, inplace=True)
         df.drop('TDC', axis=1, inplace=True)
@@ -479,6 +508,11 @@ class MuDataFrame:
         print("{} has been created".format(name))
 
     def getCSVOutputFile(self, numEvents):
+    """
+    Inputs: numEvents-int
+    Output:
+    Process: it adds a single row to a csv file (without the values below)
+    """
         df = self.events_df.copy()
         df.drop('ADC', axis=1, inplace=True)
         df.drop('TDC', axis=1, inplace=True)
@@ -497,25 +531,51 @@ class MuDataFrame:
         print("{} has been created".format(name))
 
     def reload(self):
+    """
+    Inputs:
+    Output:
+    Process: it resets the datafile to the original datafile with only the measured values (i think) 
+    """
         self.events_df = self.og_df
 
     def generateReport(self):
+    """
+    Inputs:
+    Output:
+    Process: it generates a profile report based on the events measured.
+    Documentation at https://pandas-profiling.github.io/pandas-profiling/docs/master/rtd/pages/api/_autosummary/pandas_profiling.profile_report.ProfileReport.html
+    """
         profile = ProfileReport(self.events_df,
                                 title='Prototype 1B Profiling Report',
                                 explorative=True)
         profile.to_file("mdf.html")
 
     def getStartTime(self):
+    """
+    Inputs:
+    Output: string
+    Process: it returns the time of the first event
+    """
         x = self.events_df['event_time'].values[0]
         x = pd.to_datetime(str(x))
         return x.strftime("%b %d %Y %H:%M:%S")
 
     def getEndTime(self):
+    """
+    Inputs:
+    Output: string
+    Process: it returns the time of the last event
+    """
         x = self.events_df['event_time'].values[-1]
         x = pd.to_datetime(str(x))
         return x.strftime("%b %d %Y %H:%M:%S")
 
     def getFrontPageInfo(self):
+    """
+    Inputs:
+    Output: string
+    Process: it returns a string contained the runNum, start time, end time and report generation time
+    """
         fLine = "Analysis of Run: " + self.runNum
         sLine = "\nRun Start: " + str(self.getStartTime())
         tLine = "\nRun End: " + str(self.getEndTime())
@@ -525,10 +585,20 @@ class MuDataFrame:
         return txt
 
     def getMuSpeedPlot(self, pdf=False):
+    """
+    Inputs:
+    Output: graph (i think)
+    Process: it creates a histogram of the speed of muons in the range 0 to 1c 
+    """
         x = self.getHistogram("speed", range=[0, 1], pdf=pdf)
         return x
 
     def generateAnaReport(self, pdfName="", reload=True):
+    """
+    Inputs:
+    Output:
+    Process: it creates a report pdf to be used in other functions
+    """
         print("Creating the report pdf...")
         if pdfName == "":
             pdfName = self.pdfName
@@ -642,6 +712,11 @@ class MuDataFrame:
         print("The report file {} has been created.".format(pdfName))
 
     def generateAsymTestReport(self, pdfName=""):
+    """
+    Inputs:
+    Output:
+    Process: it creates histograms for the asymmetry values
+    """
         print("Creating the report pdf...")
         if pdfName == "":
             pdfName = self.pdfName
@@ -700,6 +775,11 @@ class MuDataFrame:
         print("The report file {} has been created.".format(pdfName))
 
     def keepGoodTDCEventsPlot(self, dev=1):
+    """
+    Inputs:
+    Output:
+    Process: it filters out events which have a sum more than 1 away from the mean.
+    """
         self.keepEvents("sumL1", self.getStats("sumL1")['mean'] + dev, "<=")
         self.keepEvents("sumL1", self.getStats("sumL1")['mean'] - dev, ">=")
         self.keepEvents("sumL2", self.getStats("sumL2")['mean'] + dev, "<=")
@@ -710,15 +790,26 @@ class MuDataFrame:
         self.keepEvents("sumL4", self.getStats("sumL4")['mean'] - dev, ">=")
 
     def keep4by4Events(self):
+    """
+    Inputs:
+    Output:
+    Process: it filters out events which did not hit all 8 plates
+    """
         self.keepEvents("numLHit", 8, "==")
 
-    def getXView(self,
+def getXView(self,
                  pdf=False,
                  isBinned=True,
                  nbin=90,
                  a_min=-180,
                  a_max=180,
                  reload=True):
+    """
+    Inputs:
+    Output: png file
+    Process: it creates histograms of theta_x1 and theta_x2 with additional stat info (i think).
+    it can return a picture of the graph.
+    """
         self.keep4by4Events()
         xmin = a_min
         xmax = a_max
@@ -775,6 +866,12 @@ class MuDataFrame:
                  a_min=-180,
                  a_max=180,
                  reload=True):
+    """
+    Inputs:
+    Output: png file
+    Process: it creates histograms of theta_y1 and theta_y2 with additional stat info (i think).
+    it can return a picture of the graph.
+    """
         self.keep4by4Events()
         xmin = a_min
         xmax = a_max
@@ -832,6 +929,11 @@ class MuDataFrame:
                       nbin=90,
                       a_min=-180,
                       a_max=180):
+    """
+    Inputs: theta_x1,theta_x2-array
+    Output: png file
+    Process: it creates a histogram of the two values. it can also return the values used for the graph (i think).
+    """
         fig, ax = plt.subplots(nrows=1, ncols=2)
         plt.suptitle("X Angle (degrees)")
         ax[0].hist(theta_x1,
@@ -859,6 +961,11 @@ class MuDataFrame:
                       nbin=90,
                       a_min=-180,
                       a_max=180):
+    """
+    Inputs: theta_y1,theta_y2-array
+    Output: png file
+    Process: it creates a histogram of the two values. it can also return the values used in the graph (i think).
+    """
         fig, ax = plt.subplots(nrows=1, ncols=2)
         plt.suptitle("Y Angle (degrees)")
         ax[0].hist(theta_y1,
@@ -878,6 +985,11 @@ class MuDataFrame:
             return ax
 
     def getTomogram(self, pdf=False, isBinned=True, nbin=11, reload=True):
+    """
+    Inputs:
+    Output: png file
+    Process: it creates a histogram of the z_angle value. it can also return the figure.
+    """
         self.keep4by4Events()
         xmin = -1
         ymin = -1
@@ -904,6 +1016,11 @@ class MuDataFrame:
                  a_min=0,
                  a_max=90,
                  reload=True):
+    """
+    Inputs:
+    Output: png file
+    Process: it creates a histogram of the z_angle with additional stat info. it can also return the figure.
+    """
         self.keep4by4Events()
         xmin = a_min
         xmax = a_max
@@ -943,6 +1060,11 @@ class MuDataFrame:
                                              amount=5,
                                              xmax=0.5,
                                              xmin=-0.5):
+    """
+    Inputs:
+    Output:
+    Process: it creates a histogram of acceptable values (see keepGoodTDCEventsPlot and getAsymmetry1DPlots)
+    """
         self.keepGoodTDCEventsPlot(dev)
         self.getAsymmetry1DPlots(
             pdf=pdf,
@@ -957,6 +1079,11 @@ class MuDataFrame:
         self.reload()
 
     def mergePDF(self, pdfName):
+    """
+    Inputs: pdfName-string
+    Output:
+    Process: it adds all pdfs created in pdfList (they are really pages of the same pdf) and merges them into one final pdf.
+    """
         for i in self.pdfList:
             os.remove(i + ".png")
         self.pdfList = [i + ".pdf" for i in self.pdfList]
@@ -967,6 +1094,11 @@ class MuDataFrame:
         output.write(file(pdfName, "wb"))
 
     def createOnePDF(self, pdfName):
+    """
+    Inputs: pdfName-string
+    Output:
+    Process: it takes out the png files and replaces them with pdfs in pdfList.
+    """
         for i in self.pdfList:
             os.remove(i + ".png")
         self.pdfList = [i + ".pdf" for i in self.pdfList]
@@ -986,6 +1118,11 @@ class MuDataFrame:
             os.remove(i)
 
     def convertPNG2PDF(self):
+    """
+    Inputs:
+    Output:
+    Process: it creates the pdfs needed for the above function.
+    """
         for i in self.pdfList:
             image1 = Image.open(i + ".png")
             im1 = image1.convert('RGB')
@@ -996,6 +1133,11 @@ class MuDataFrame:
     # show(self.events_df)
 
     def getAnaReport(self):
+    """
+    Inputs:
+    Output:
+    Process: it creates an analysis report including all commands below (see commands for more details).
+    """
         self.getDeadtimePlot()
         self.getChannelPlots()
         self.getChannelSumPlots()
@@ -1008,6 +1150,11 @@ class MuDataFrame:
         self.getScalerPlots_channels()
 
     def getScalerPlots_channels(self, pdf=False, amount=5):
+    """
+    Inputs:
+    Output: png file
+    Process: it creates histograms for the values of channels 4-11 with additional stat info. it can also return a png file.
+    """
         fig, axes = plt.subplots(nrows=4, ncols=2)
         plt.suptitle("Histogram of Scaler Readings (Ch 4 - 11)")
         ax0, ax1, ax2, ax3, ax4, ax5, ax6, ax7 = axes.flatten()
@@ -1146,6 +1293,11 @@ class MuDataFrame:
             return fig
 
     def getScalerPlots_header(self, pdf=False, amount=5):
+    """
+    Inputs:
+    Output:
+    Process: same as above, but using channels 0-3.
+    """
         fig, axes = plt.subplots(nrows=4, ncols=1)
         plt.suptitle("Histogram of Scaler Readings (Ch 0 - 3)")
         ax0, ax1, ax2, ax3 = axes.flatten()
@@ -1218,6 +1370,11 @@ class MuDataFrame:
             return fig
 
     def getAsymPlotFig(self, term1, term2, nbins=500):
+    """
+    Inputs:
+    Output: histogram
+    Process: it creates a 2d histogram of the asymmetry in x and y.
+    """
         xmin = -0.65
         xmax = 0.65
         ymin = -0.65
@@ -1231,23 +1388,48 @@ class MuDataFrame:
         return x
 
     def x(self, t):
+    """
+    Inputs: t-float
+    Output:
+    Process: it is used in an overall asymmetry in x calculation.
+    """
         asymT1 = self.events_df["asymL1"].values
         asymT3 = self.events_df["asymL3"].values
         return asymT1 + asymT3 * t
 
     def y(self, t):
+    """
+    Inputs: t-float
+    Output:
+    Process: it is used in an overall asymmetry in y calculation.
+    """
         asymT2 = self.events_df["asymL2"].values
         asymT4 = self.events_df["asymL4"].values
         return asymT2 + asymT4 * t
 
     def z(self, t):
+    """
+    Inputs: t-float
+    Output:
+    Process: it uses constants to calculate the z for one of our calculations.
+    """
         return -(self.d_phys / 2) + self.d_phys * t
 
     def getTValue(self):
+    """
+    Inputs:
+    Output: float
+    Process: it performs a calculation for the t value used above based on constants of our experiment. can be changed easily to accomodate other setups. 
+    """
         phys = -(self.d_phys / 2) - self.d_lead
         return getAsymmetryUnits(phys)
 
     def get2DTomogram(self, pdfv=False, nbins=11, title="", reload=True):
+    """
+    Inputs:
+    Output: 
+    Process: creates 2D histogram of x and y asymmetry changed by the t value in our experiment.
+    """
         self.keep4by4Events()
         xmin = -1
         xmax = 1
@@ -1274,6 +1456,12 @@ class MuDataFrame:
             pass
 
     def getCorrelationPlot(self, query_list, nbins=1000, title=""):
+    """
+    Inputs: query_list-datafile
+    Output:
+    Process: it creates a 2d histogram of a given query_list dataset. i'm honestly not sure how it is used. i couldn't find any
+    other references to it or query_list.
+    """
         xmin = -0.65
         xmax = 0.65
         ymin = -0.65
@@ -1285,6 +1473,11 @@ class MuDataFrame:
                             nbins, False)
 
     def allLayerCorrelationPlots(self, pdfv=False, nbins=1000, title=""):
+    """
+    Inputs:
+    Output:
+    Process: it creates histograms for all asymmetry value combinations.
+    """
         xmin = -0.65
         xmax = 0.65
         ymin = -0.65
@@ -1357,6 +1550,11 @@ class MuDataFrame:
                             pdf=pdfv)
 
     def getFingerPlots(self, pdfv=False):
+    """
+    Inputs:
+    Output:
+    Process: it creates histograms of L and R values (only matching numbers).
+    """
         xmin = 0
         xmax = 300
         ymin = -0
@@ -1416,10 +1614,20 @@ class MuDataFrame:
                             pdf=pdfv)
 
     def getDeadtimePlot(self, pdf=False):
+    """
+    Inputs:
+    Output:
+    Process: it creates a histogram of deadtime.
+    """
         x = self.getHistogram("deadtime", pdf=pdf)
         return x
 
     def getPDFPlot(self, term, nbin, range, title="", pdf=False):
+    """
+    Inputs: term-string
+    Output: figure
+    Process: it creates a histogram of a given term and finds standard stat info on it.
+    """
         xmin, xmax = range
         nbins = self.getBins(xmin, xmax, nbin)
         fig, ax = plt.subplots(nrows=1, ncols=1)
@@ -1445,10 +1653,22 @@ class MuDataFrame:
         return fig
 
     def getEfficiencyPlot(self, pdf=False):
+    """
+    Inputs:
+    Output: string
+    Process: it sets up an empty string ax
+    """
         ax = ""
         return ax
 
     def getChannelStatusPlot(self, pdf=False):
+    """
+    Inputs:
+    Output: plot array (i think)
+    Process: it populates the previous ax with plots of the efficiency with which
+    we get viable datapoints.
+    """
+    
         l1_p = list(self.og_df['l1hit'].values).count(1)
         l2_p = list(self.og_df['l2hit'].values).count(1)
         l3_p = list(self.og_df['l3hit'].values).count(1)
@@ -1482,17 +1702,34 @@ class MuDataFrame:
             return ax
 
     def getNumLayersHitPlot(self, pdf=False):
+    """
+    Inputs:
+    Output:
+    Process: it creates a histogram of the number of plates hit in events (out of 8).
+    """
         x = self.getHistogram("numLHit",
                               title="(TDC Hits Registered Per Event)",
                               pdf=pdf)
         return x
 
     def getBins(self, xmin, xmax, nbins):
+    """
+    Inputs: xmin,xmax-float, nbins-int
+    Output: array
+    Process: it finds the delimiations necessary in a dataset for a given bin count.
+    Ex.: a set going from 0 to 10 with 10 bins requires each bin to have a size of 1.
+    it returns an array cotaining every n elements of the starting array.
+    """
         x = list(range(xmin, xmax))
         n = round((xmax - xmin) / nbins)
         return x[::n]
 
     def getSmallCounterPlot(self, pdf=False, nbin=100):
+    """
+    Inputs:
+    Output: png file
+    Process: it creates a histogram of the 8th value of the TDC. i'm not sure what this value actually is (i think).
+    """
         xmin = 0
         xmax = 400
         nbins = self.getBins(xmin, xmax, nbin)
@@ -1522,6 +1759,11 @@ class MuDataFrame:
             return fig
 
     def getCounterPlots(self, pdf=False, nbin=100):
+    """
+    Inputs:
+    Output: png file
+    Process: it creates a histogram of top counter and one of bottom counter.
+    """
         xmin = 0
         xmax = 200
         nbins = self.getBins(xmin, xmax, nbin)
@@ -1569,6 +1811,11 @@ class MuDataFrame:
             return fig
 
     def getMuonRate(self, mu_num_thresh_hold, pdf=False):
+    """
+    Inputs: mu_num_thresh_hold-float
+    Output:
+    Process: it creates a pair of scatter plots and histograms of muon rates, one for daytime events and one for nighttime.
+    """
         self.classifyDateTime()
         self.getSerializedTimes()
         ms2min = 1.6666666666666667 * 10**(-8)
@@ -1620,6 +1867,11 @@ class MuDataFrame:
             return fig
 
     def getADCPlots(self, pdf=False, nbin=10):
+    """
+    Inputs: 
+    Output: png file
+    Process: it creates histograms of ADC 0-11. it also returns a figure of them.
+    """
         xmin = 0
         xmax = 30
         # nbins = self.getBins(xmin, xmax, nbin)
