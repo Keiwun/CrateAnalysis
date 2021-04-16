@@ -2092,6 +2092,10 @@ def getXView(self,
             return fig
 
     def getChannelPlots(self, pdf=False, nbin=200):
+        "Inputs: self-> not sure, pdf=False->string, nbin =10->int"
+        "Outputs: 12 different ADC channel histograms"
+        "Process: the code takes each individual channel and plots its hisogram, its axes and the mean standard
+        "deviation, all from the nhmber of muon events that specific channel picked up, and then displays them all"
         xmin = 0
         xmax = 200
         nbins = self.getBins(xmin, xmax, nbin)
@@ -2241,6 +2245,11 @@ def getXView(self,
             return fig
 
     def getChannelSumPlots(self, pdf=False, isBinned=True, nbin=50, amount=5):
+        "Inputs: self-> string, pdf=False-> string, isBinned=True-> boolean, nbin=50-> int, amount=5-> int "
+        "Outputs: 4 histograms that show mean, standard deviation, and overflow from the number of muon events"
+        "Process: The code checks the value  of the boolean input(isBinned) and if true, The code  then takes 
+        "the left cable(L) of a given tray's combined TDC value and then plots it. the code makes an array
+        "of 4 rows and 1 column of different histograms, each histogram has its mean, std, and overflow listed. 
         if isBinned:
             fig, axes = plt.subplots(nrows=4, ncols=1)
             xmin, xmax = 160, 280
@@ -2414,6 +2423,11 @@ def getXView(self,
                 return fig
 
     def getChannelDiffPlots(self, pdf=False, isBinned=True, nbin=50, amount=5):
+        "Inputs: self-> string, pdf=False-> boolean, isBinned=True-> boolean, nbin=50-> int, amount=5-> int 
+        "Outputs: 4 histograms with mean, standard deviation and overflow listed
+        "Process: the code checks to see if the isBinned is true, if so, the code makes a histogram with a range of 200 
+        " units from -100 to 100 and subtracts the values of anything less than the xmin and greater than xmax and subtracts them. 
+        " The values come fronm the left cable of a given tray. If the value of isBinned is false, then the code does the same thing"
         if isBinned:
             fig, axes = plt.subplots(nrows=4, ncols=1)
             xmin = -100
@@ -2598,6 +2612,12 @@ def getXView(self,
                             title="Histogram of Asymmetry of each Tray",
                             xmax=0.5,
                             xmin=-0.5):
+        "Inputs:self-> sstring, pdf= False-> boolean, idBinned=True-> Boolean, nbin=50-> int, amount=5-> int, title='Histogram of Asymmetry of
+        "of each Tray-> string, xmax=0.5->float, xmin=-0.5->float
+        "Outputs: 4 1D hisstograms of the Asymmetry plots, one for each channel
+        "Process: The code checks the value of isBinned, to see if either true or false, if true, the code returns a histogram showing the histogram
+        " of the asymmetry of each tray. If the value is false then the second part of the code, hard-codes the dimensions of the histogram as well
+        " as the mean, standard deviation and overflow"
         if isBinned:
             fig, axes = plt.subplots(nrows=4, ncols=1)
             plt.suptitle(title)
@@ -2781,17 +2801,29 @@ def getXView(self,
                 return fig
 
     def getDataFrame(self, df):
+        "Inputs: self-> string, df-> string "
+        " Outputs: Muon Data Frame "
+        " Process:This part of the code reads the code that comes before it and compiles the information to make 
+        " a data frame. However this data frame doesn't have the ADC or TDC graphs."
         # return self.serialize_dataframe(df, self.newFileName)
         return parallelize_dataframe(df, self.completeDataFrameNoADCTDC,
                                      self.newFileName)
 
     def serialize_dataframe(self, df, path):
+        " Inputs:self-> string, df-> string, path-> string "
+        " Outputs:The complete data frame without the ADC or TDC graphs "
+        " Process: the code takes the df variable and sets it equal to the self.completeDataFrameNoADCTDC(df) and saves the data frame and sends
+        " it to the hdf dictionary
         df = self.completeDataFrameNoADCTDC(df)
         # feather.write_dataframe(df, path)
         df.to_hdf(path, key=path)
         return df
 
     def completeDataFrameNoADCTDC(self, df):
+        "Inputs:self-> string, df-> string "
+        " Outputs: The  pairing and storing of the variables to a number"
+        " Process: The code takes the values of the L's and R's from a list and pairs them together. The second part of the code calculates 
+        " the angle at which the muon hit came from, then stores this information  
         df['L1'] = self.getTDC(df['TDC'].to_numpy(), 0)
         df['R1'] = self.getTDC(df['TDC'].values, 1)
         df['L2'] = self.getTDC(df['TDC'].values, 2)
@@ -2856,6 +2888,12 @@ def getXView(self,
         return df
 
     def completeDataFrame(self, df):
+        "Inputs: self-> string, df-> string "
+        " Outputs: All the variables have an assigned number and graph "
+        "Process: takes the different variable names and assigns them values from a list. The sum variables are obtained from performing arithmetic
+        " operations of the L and R variables, same for the diff variables. The asym values come from the division of the diff and sum variables.
+        "The code then returns the z angles and calculates the time difference between hits, to the nanosecond."
+        
         df['L1'] = self.getTDC(df['TDC'].to_numpy(), 0)
         df['R1'] = self.getTDC(df['TDC'].values, 1)
         df['L2'] = self.getTDC(df['TDC'].values, 2)
@@ -2920,6 +2958,10 @@ def getXView(self,
         return df
 
     def getMultiTDCEventsHisto(self):
+        "inputs:self-> string"
+        "Outputs: A histogram  "
+        " Process:The code reads the x dictionary and looks at each element in the dictionary, and if the length of j is greater than 2, it adds
+        " j to the list of y."
         x = self.get("TDC")
         y = []
         for i in x:
@@ -2932,12 +2974,20 @@ def getXView(self,
         plt.show()
 
     def getADC(self, event, chNum):
+        "Inputs:self-> string, event-> string, chNum-> string "
+        "Outputs: adcs "
+        "Process: adds chNum to the adcs list ans returns the adcs list "
         adcs = []
         for ev in event:
             adcs.append(ev[chNum])
         return adcs
 
     def getTDC(self, event, chNum):
+        "Inputs: self-> string, event-> string, chNum-> string"
+        "Outputs:tdcs "
+        "Process:Makes a list called tdcs and sets the variable tdc equal to 0, then checks to see if the ev equals to none, and if it does not,
+        "the code adds the first number from the tdcs list to the tdcVals. If the ev does equal to none, then the code sets the variable tdc to
+        " none and adds the variable tdc to the tdcs list"
         tdcs = []
         for ev in event:
             tdc = 0
@@ -2953,6 +3003,11 @@ def getXView(self,
         return tdcs
 
     def removeMultiHits(self, event):
+        "Inputs:self-> string, event-> string "
+        "Outputs: counts "
+        "Ptocess: This code makes a list called counts the code adds numbers to the list by checking to see if the ev nuber equals to none,
+        " and if it does not, the code then adds the length of the list of t that comes from the itertools.groupby dictionary. If ev does 
+        "equal none, then the code adds 0 to the counts list"
         counts = []
         for ev in event:
             if ev != None:
@@ -2966,9 +3021,16 @@ def getXView(self,
         return counts
 
     def get(self, term):
+        "Inputs:self-> string, term-> string "
+        "Outputs:events "
+        "Process: the code retutns events "
         return self.events_df[term].values
 
     def getCorrectTDC(self, tdcs):
+        "Inputs:self->string, tdcs-> string "
+        " Outputs: max tdcs "
+        "Process: if the length of tdcs is 1, return the number, if the length is equal to 0 return none, if the the length equals to the last,
+        " it gives back tdcs[-1], otherwise it returns tdcs[0] for the first number, or min or max tdcs for the max or min number.
         if len(tdcs) == 1:
             return tdcs[0]
         elif len(tdcs) == 0:
@@ -2985,21 +3047,37 @@ def getXView(self,
                 return max(tdcs)
 
     def show(self):
+        "Inputs:self->string "
+        "Outputs: events "
+        "Process:returns the number of events "
         return self.events_df
         # print(self.events_df)
 
     def lookAt(self, query_term):
+        "Inputs:self-> string, query_term->string "
+        "Outputs: the events in question: "
+        "Process: give the events that are under speculation"
         return self.events_df[query_term]
         # print(self.events_df[query_term])
 
     def removeNoTDCEvents(self):
+        "Innputs:self->string"
+        "Outputs: the number of events with their tdc values "
+        "Process: the code gives back the list "
         self.events_df = self.events_df[~self.events_df["TDC"].isnull()]
 
     def summary(self):
+        "Inputs: self->string"
+        "Outputs: events "
+        "Process: the code gives back the events that were in the info dictionary"
         return self.events_df.info()
         # print(self.events_df.info())
 
     def generateMultipleTDCHitData(self):
+        "Inputs: self->string"
+        "Outputs: the events with their tdc values "
+        "Process: makes a list of tdc hits and tdc events snd for each event in the num_tdc_read, if the event equals none, then the code does
+        "nothing, but if the event equals something the code adds the event list to the tdc events list and adds teh tdc list to the tdc hits list
         criteria = self.d1
         num_tdc_read = self.events_df["TDC"].values
         tdc_hits = []
@@ -3018,6 +3096,10 @@ def getXView(self,
         # self.generateTDCAnalyzedData()
 
     def createTDCValues(self, tdc_hits, event, criteria):
+        "Inputs: self-> string, tdc_hits->string, event->string, criteria->string"
+        "Outputs: tdc values"
+        "Prrocess: if the criteia is equal to last, list the items, if the criteria is first, remove the event, if the criteria is max, remove the
+        "number, if the number is min, add that number to the list, once that is done, for every name in the list add a number.
         if criteria == "last":
             ev = list(OrderedDict(event).items())
         elif criteria == "first":
@@ -3033,6 +3115,10 @@ def getXView(self,
         return ev
 
     def calculateTDCHits(self, event, criteria):
+        "Inputs:self->string, event->string, criteria->string "
+        "Outputs: the tdc list snd the events they go with "
+        " Process: for every element in the tdc list, the code sees what the value is, if the value is 0,1,3, or 4, it performs the operation 
+        "c=c+1, and records the numbers in the tdc hit list and returns the tdc list with the event it goes with
         zero_c = 0
         one_c = 0
         three_c = 0
@@ -3052,6 +3138,9 @@ def getXView(self,
         return tdc_hit, ev
 
     def getHisto1DInfo(self, queryName):
+        "Innputs:self->string, queryName->string "
+        "Outputs: mean, std, and count"
+        "Process: looks at the number of events and calculates the mean, std, and count "
         s = self.events_df[queryName]
         mean, std, count = s.describe().values[1], s.describe(
         ).values[2], s.describe().values[0]
@@ -3063,6 +3152,9 @@ def getXView(self,
                      nbins=200,
                      pdf=False,
                      range=None):
+        "Inputs: self->string, queryName->string, title-> string, nbins=200-> int, pdf= false-> boolean, range=none-> string "
+        "Outputs: plots a histogram "
+        "Process: the code tskes the events list and plots the points in a histogram "
         s = self.events_df[queryName]
         # plt.figure(figsize=(3, 3))
         ax = s.plot.hist(alpha=0.7, bins=nbins, range=range)
@@ -3085,6 +3177,9 @@ def getXView(self,
             return ax
 
     def getKDE(self, queryName, bw_method=None, nbins=200, range=None):
+        "Inputs: self->string, queryName->string, bw_method=none-> string, nbins=200-> int, range=none-> string "
+        "Outputs: plots the  kernel density estimation  "
+        "Process: plots the kde by using the events dataframe query list and displays the mean, std, and count "
         s = self.events_df[queryName].to_numpy()
         s = pd.Series(s)
         ax = s.plot.kde(bw_method=bw_method, bins=nbins, range=range)
@@ -3104,6 +3199,9 @@ def getXView(self,
         plt.show()
 
     def getFilteredHistogram(self, queryName, filter, nbins=200, title=""):
+        "Inputs:self->string, queryName-> string, filter->string, nbins=200->int, title=-> string
+        "outputs: Histogram"
+        "Process: takes the events dataframe and sends the frame through a filter and plots the results in a histogram "
         self.events_df.hist(column=queryName, bins=nbins, by=filter)
         plt.suptitle("Histograms of {} grouped by {} {}".format(
             queryName, filter, title))
@@ -3111,6 +3209,9 @@ def getXView(self,
         plt.show()
 
     def getComparableHistogram(self, queries, nbins=200, title="", lims=None):
+        "Inputs:self->string, queries->string, nbins=200->int, title=""->string, lims=None->string "
+        "Outputs: histogram "
+        "Process: plots a histogram "
         s = pd.DataFrame(columns=queries)
         s = s.fillna(0)  # with 0s rather than NaNs
         for query in queries:
@@ -3132,6 +3233,10 @@ def getXView(self,
                        nbins=150,
                        pdf=False,
                        zLog=True):
+        "Inputs:self-> string, xvals->string, yvals->string, title-> string, xlabel->string, ylabel-> string, xmin-> string, xmax->string, 
+        "ymin-> string, ymax->string, nbins=150-> int, pdf=false-> boolean, zlog=true-> boolean
+        "Outputs: a 2d histogram "
+        "Process: plots a histogram"
         name = title.replace(" ", "") + "_run_" + self.runNum
         self.pdfList.append(name)
         if not pdf:
@@ -3202,6 +3307,9 @@ def getXView(self,
 
     @dispatch(str)
     def getPlot(self, query):
+        "Input:self->string, query->string "
+        "Outputs: Histogram: "
+        "Process:pulls the data from the dataframe and plots the information with the axes labeled and a title "
         self.events_df[query].plot()
         plt.xlabel("Event Number")
         plt.ylabel(str(query))
@@ -3210,6 +3318,9 @@ def getXView(self,
 
     @dispatch(list)
     def getPlot(self, queries, title=""):
+        "Inputs: self->string, queries->string, title=""->string"
+        "Outputs: a line plot "
+        "Process: takes eventsl from the data frame and looks at the first 2 columns and plots them with a title "
         plt.plot(self.events_df[queries[0]].values,
                  self.events_df[queries[1]].values)
         plt.xlabel(str(queries[0]))
@@ -3219,6 +3330,9 @@ def getXView(self,
         plt.show()
 
     def getScatterPlot(self, queries, title=""):
+        "Inputs:self->string, queries->string, title=""->string "
+        "Outputs:scatterplot "
+        "Process:the code looks at the dataframe and pulls the firsst 2 columns and plots the data in a scatterplot "
         plt.scatter(self.events_df[queries[0]].values,
                     self.events_df[queries[1]].values)
         plt.xlabel(str(queries[0]))
@@ -3228,6 +3342,9 @@ def getXView(self,
         plt.show()
 
     def get3DScatterPlot(self, queries, title="", xlims=None, ylims=None):
+        "Inputs:self->string, queries->string, title=""->string, xlims=None->string, ylims=None->string "
+        "Outputs: a 3d scatterplot "
+        "process: looks at the data frame, pulls the first 3 columns and plots that data into a 3d scatteplot "
         self.events_df.plot.scatter(x=queries[0],
                                     y=queries[1],
                                     c=queries[2],
@@ -3238,6 +3355,10 @@ def getXView(self,
         plt.show()
 
     def getEventInfo(self, eventNum):
+        "Inputs: self->string, eventNum->string"
+        "Outputs: the data frame  "
+        "Process: looks at the event number column in the data frame and looks to see if those numbers are equal wih the variable eventNum, if so
+        " nothing happens, if not, im not sure
         if isinstance(eventNum, int):
             df = self.events_df.loc[self.events_df["event_num"] == eventNum]
         elif isinstance(eventNum, list):
@@ -3247,11 +3368,17 @@ def getXView(self,
         # print(df)
 
     def getStats(self, queryName):
+        "Inputs:self->string, queryName ->string"
+        "Outputs: the stats of the data frame, the mean, std, counts, and overflow"
+        "Process: this code takes the stats of the whole data frame"
         s = self.events_df[queryName]
         return s.describe()
         # print(s.describe())
 
     def removeOutliers(self):
+        "Inputs: self->string"
+        "Outputs: the outliers are taken out of the data "
+        " Process:this code places limits on the acceptable data limits and removes those points of data that do not fall in that range "
         for queryName in self.quant_query_terms:
             q_low = self.events_df[queryName].quantile(0.01)
             q_hi = self.events_df[queryName].quantile(0.99)
@@ -3260,6 +3387,9 @@ def getXView(self,
                 & (self.events_df[queryName] > q_low)]
 
     def keepEvents(self, term, value, cond):
+        "inputs: self->string, term->string, value->string, cond->string"
+        "Outputs: acceptable values  "
+        "Process: this part of the code looks at the numbers and data in the dataframe, and displays  "
         if cond == "<":
             self.events_df = self.events_df[self.events_df[term] < value]
         elif cond == ">":
@@ -3276,10 +3406,16 @@ def getXView(self,
     # @staticmethod
 
     def keepEventsWithinStdDev(self, queryName, numStd):
+        "Inputs:self->string, queryName->string, numStd->string "
+        "Outputs:numbers and data that fall in the first std "
+        "Process: compares the data with the limit of the first std, and for those outside of that, they are not put in the graph "
         df_filtered = scrubbedDataFrame(self.events_df, queryName, numStd)
         self.events_df = df_filtered
 
     def getTrimmedHistogram(self, queryName, numStd, nbins=200):
+        "Inputs:self->string, queryName->string, numStd->string, nbins=200->int "
+        "Outputs:a filtered histogram "
+        "Process: the code pulls the filtered data frame and puts those points into a histogram "
         df_filtered = scrubbedDataFrame(self.events_df, queryName, numStd)
         getHistogram(df_filtered,
                      queryName,
@@ -3287,9 +3423,15 @@ def getXView(self,
                      nbins=nbins)
 
     def getTrimmed2DHistogram(df, queryName, numStd, nbins=200):
+        "Inouts:df->string, queryName->string, numStd->string, nbins=200->int "
+        "Outputs: a filtered 2d histogram "
+        "Process: plots a filtered 2d histogram "
         pass
 
     def getTrimmedFilteredHistogram(self, queryName, numStd, nbins=200):
+        "Inputs: self, queryName, numStd, nbins=200
+        "Outputs: a filtered Histogram 
+        " Process: pulls the filtered data and plots it as a histogram
         df_filtered = scrubbedDataFrame(self.events_df, queryName, numStd)
         getFilteredHistogram(df_filtered,
                              queryName,
@@ -3297,6 +3439,10 @@ def getXView(self,
                              title="(Events within {} std dev)".format(numStd))
 
     def getTrimmedComparableHistogram(self, queries, numStd, nbins=200):
+        "Inputs: self, queries, numStd, nbins=200
+        "Output: Histogram with the number of events within the standard deviation 
+        "Process: takung columns and filling the empty spaces with zeros and useing that to make an array. 
+        "With that array, it's forming a histogram with the events within the standard deviation
         s = pd.DataFrame(columns=queries)
         s = s.fillna(0)  # with 0s rather than NaNs
         for query in queries:
