@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
-"""
+
 =============================================
 Program : CrateAnalysis/MuonDataFrame.py
 =============================================
 Summary:
 """
 __author__ = "Sadman Ahmed Shanto"
-__date__ = "10/06/2020"
+__date__ = "2021-02-17"
 __email__ = "sadman-ahmed.shanto@ttu.edu"
+
+""""
 
 # import feather
 import matplotlib.pyplot as plt
@@ -32,6 +33,7 @@ from PyPDF2 import PdfFileWriter, PdfFileReader, PdfFileMerger
 from multipledispatch import dispatch
 from Notify import Notify
 from datetime import timedelta
+from MuonDataFrame import *
 import copy
 
 
@@ -41,22 +43,22 @@ def getCombinedMDFO(runStart, runEnd):
         "processed_data/run{}.csv".format(i) for i in range(r1, r2 + 1)
     ]
 
-    mdfo_c = []  #collection of objects
+    self_c = []  #collection of objects
 
     for file in lead_files:
-        mdfo_c.append(MuDataFrame(file))  #Muon Data Frame Object for Lead
+        self_c.append(MuDataFrame(file))  #Muon Data Frame Object for Lead
 
-    mdf_list = [i.events_df for i in mdfo_c]
-    mdf_lead = mdfo_c[0].getMergedMDF(mdf_list)
+    mdf_list = [i.events_df for i in self_c]
+    mdf_lead = self_c[0].getMergedMDF(mdf_list)
 
-    mdfo_lead = copy.copy(mdfo_c[0])
-    mdfo_lead.events_df = mdf_lead
+    self_lead = copy.copy(self_c[0])
+    self_lead.events_df = mdf_lead
 
-    mdfo_lead.longDataMode()
+    self_lead.longDataMode()
 
-    mdf_lead = mdfo_lead.events_df
-    mdfo_lead.og_df = mdf_lead.copy()
-    return mdfo_lead
+    mdf_lead = self_lead.events_df
+    self_lead.og_df = mdf_lead.copy()
+    return self_lead
 
 
 def getEmissionOutputCSV(df, fileName):
@@ -65,17 +67,6 @@ def getEmissionOutputCSV(df, fileName):
 
 
 np.warnings.filterwarnings('ignore')
-
-
-def getXatZPlane_diffTDC(x1, x2, zplane, dsep):
-    x = (zplane / dsep) * (
-        getPhysicalUnitsFromDiffTDC(x1) -
-        getPhysicalUnitsFromDiffTDC(x2)) + getPhysicalUnitsFromDiffTDC(x1)
-    return x
-
-
-def getPhysicalUnitsFromDiffTDC(tdc):
-    return (55 / 130) * tdc
 
 
 def getPhysicalUnits(asym):
@@ -223,17 +214,17 @@ def getFilteredHistogram(df, queryName, filter, nbins=200, title=""):
     plt.show()
 
 
-class MuonDataFrame:
-    def __init__(self, path, isNew, d1="last"):
+class MuDataFrame:
+    def __init__(self, path):
         """
         Initialize the MuonDataFrame
-
         :param path [string]: path to the data file
         :param d1 [string]: type of decision to be made on multiTDC events (acceptable terms are "last", "first", "min", and "max")
                             default value = last
         """
+        self.events_df = pd.read_csv(path)
         self.newFileName = path.split(".")[0].split("/")[0] + "/" + path.split(
-            ".")[0].split("/")[1] + ".h5"
+            ".")[0].split("/")[1] + ".csv"
         self.nbins = 150
         self.d_phys = 1.65  #distance between two trays in meters
         self.d_lead = 0.42  #distance (m) between top tray and lead brick
@@ -246,25 +237,6 @@ class MuonDataFrame:
             'r1hit', 'r2hit', 'r3hit', 'r4hit'
         ]
         self.query_terms = self.default_query_terms + self.quant_query_terms
-        self.d1 = d1
-        if isNew == "True":
-            try:
-                with pd.HDFStore(path) as hdf:
-                    key1 = hdf.keys()[0]
-                self.events_df = self.getDataFrame(
-                    pd.read_hdf(path, key=key1, use_threads=True))
-                #format="table",
-            except:
-                self.events_df = self.getDataFrame(
-                    #pd.read_hdf(path, format="table", use_threads=True))
-                    pd.read_hdf(path, use_threads=True))
-        else:
-            with pd.HDFStore(path) as hdf:
-                key2 = hdf.keys()[1]
-            self.events_df = pd.read_hdf(self.newFileName,
-                                         key=key2,
-                                         use_threads=True)
-            #  format="table",
         self.pdfName = path.split(".")[0].split("/")[1] + ".pdf"
         self.pdfList = []
         self.runNum = self.pdfName.split(".")[0].split("_")[-1]
@@ -281,9 +253,10 @@ class MuonDataFrame:
 
     def classifyDateTime(self):
         timestamps = self.get("event_time")
-
         label = []
-        for time in timestamps:
+        for timestamp in timestamps:
+            time = datetime.datetime.strptime(timestamp,
+                                              "%Y-%m-%d %H:%M:%S.%f")
             hr, mi = (time.hour, time.minute)
             if (hr >= 7 and hr < 18):
                 label.append("day")
@@ -292,9 +265,9 @@ class MuonDataFrame:
         self.events_df["time_of_day"] = label
 
     def getProjectionData_diff(self, zplane=42, dsep=165):
-        xx_lead = getXatZPlane_diffTDC(self.get("asymL1"), self.get("asymL3"),
+        xx_lead = getXatZPlane_diffTDC(self.get("diffL1"), self.get("diffL3"),
                                        zplane, dsep)
-        yy_lead = getXatZPlane_diffTDC(self.get("asymL2"), self.get("asymL4"),
+        yy_lead = getXatZPlane_diffTDC(self.get("diffL2"), self.get("diffL4"),
                                        zplane, dsep)
 
         self.events_df["xx1"] = xx_lead
@@ -313,58 +286,6 @@ class MuonDataFrame:
         num_lead_events = len(self.events_df.index)
         lead_events_seq = [i for i in range(num_lead_events)]
         self.events_df["event_num"] = lead_events_seq
-
-    def getMuonRate(self, threshold, pdf=False):
-        self.classifyDateTime()
-        self.getSerializedTimes()
-        ms2min = 1.6666666666666667 * 10**(-8)
-        times = self.get("time") * ms2min
-        mu_num = self.get("event_num")
-        colors = [
-            'red' if x == "day" else 'blue' for x in self.get("time_of_day")
-        ]
-        time_arr = []
-        color = []
-        for i in range(len(mu_num)):
-            if mu_num[i] % threshold == 0:
-                time_arr.append(times[i])
-                color.append(colors[i])
-
-        time_diff = np.diff(np.array(time_arr))
-        mu_rate = np.array(threshold / time_diff)
-        xvals = np.array([i for i in range(len(mu_rate))])
-
-        day = np.array(color) == "red"
-        night = np.array(color) == "blue"
-
-        fig, axes = plt.subplots(nrows=1, ncols=2)
-        plt.suptitle("Muon Rate (number/min)")
-        ax0, ax1 = axes.flatten()
-
-        ax0.scatter(xvals[day[1:]],
-                    mu_rate[day[1:]],
-                    color='orange',
-                    label="day",
-                    s=0.9)
-        ax0.scatter(xvals[night[1:]],
-                    mu_rate[night[1:]],
-                    color='blue',
-                    label="night",
-                    s=0.9)
-        ax0.legend()
-        ax0.set_xlabel(
-            "Number of times {} muons were recorded".format(threshold))
-        ax0.set_ylabel("Muon Rate")
-        ax1.hist(mu_rate[night[1:]], label="night", histtype="step", bins=15)
-        ax1.hist(mu_rate[day[1:]], label="day", histtype="step", bins=15)
-        ax1.set_xlabel("Muon Rate")
-        plt.legend()
-        fig.tight_layout()
-        self.events_df = self.og_df
-        if not pdf:
-            plt.show()
-        else:
-            return fig
 
     def getSerializedTimes(self):
         times_lead = np.array([
@@ -397,10 +318,6 @@ class MuonDataFrame:
             self.runNum)
         Notify().sendPdfEmail(self.pdfName, csvName)
 
-    def sendShantoEmail(self):
-        csvName = "processed_data/run{}.csv.gz".format(self.runNum)
-        Notify().sendShantoPdfEmail(self.pdfName, csvName)
-
     def sendReportEmailRecovery(self):
         csvName = "processed_data/events_data_frame_{}.csv.gz".format(
             self.runNum)
@@ -409,16 +326,17 @@ class MuonDataFrame:
     def getCompleteCSVOutputFile(self):
         df = self.events_df.copy()
         df.drop('ADC', axis=1, inplace=True)
-        # df.drop('ADC1', axis=1, inplace=True)
-        # df.drop('ADC3', axis=1, inplace=True)
-        # df.drop('ADC4', axis=1, inplace=True)
-        # df.drop('ADC5', axis=1, inplace=True)
-        # df.drop('ADC6', axis=1, inplace=True)
-        # df.drop('ADC7', axis=1, inplace=True)
-        # df.drop('ADC8', axis=1, inplace=True)
-        # df.drop('ADC9', axis=1, inplace=True)
-        # df.drop('ADC10', axis=1, inplace=True)
-        # df.drop('ADC11', axis=1, inplace=True)
+        df.drop('ADC1', axis=1, inplace=True)
+        df.drop('ADC2', axis=1, inplace=True)
+        df.drop('ADC3', axis=1, inplace=True)
+        df.drop('ADC4', axis=1, inplace=True)
+        df.drop('ADC5', axis=1, inplace=True)
+        df.drop('ADC6', axis=1, inplace=True)
+        df.drop('ADC7', axis=1, inplace=True)
+        df.drop('ADC8', axis=1, inplace=True)
+        df.drop('ADC9', axis=1, inplace=True)
+        df.drop('ADC10', axis=1, inplace=True)
+        df.drop('ADC11', axis=1, inplace=True)
         df.drop('TDC', axis=1, inplace=True)
         df.drop('theta_x1', axis=1, inplace=True)
         df.drop('theta_y1', axis=1, inplace=True)
@@ -427,11 +345,11 @@ class MuonDataFrame:
         df.drop('z_angle', axis=1, inplace=True)
         df = self.addRunNumColumn(df)
         df = self.addInfoColumn(df, "ADC0", "ADC_Ch0")
-        df = self.addInfoColumn(df, "ADC2", "ADC_Ch2")
         df.drop('ADC0', axis=1, inplace=True)
-        df.drop('ADC2', axis=1, inplace=True)
         name = "processed_data/events_data_frame_{}.csv.gz".format(self.runNum)
         df.to_csv(name, header=True, index=False, compression='gzip')
+        name = "processed_data/events_data_frame_{}.csv".format(self.runNum)
+        df.to_csv(name, header=True, index=False)
         print("{} has been created".format(name))
 
     def getCompleteCSVOutputFile_og(self):
@@ -443,20 +361,15 @@ class MuonDataFrame:
         df.to_csv(name, header=True, index=False)
         print("{} has been created".format(name))
 
-    def getEmissionFile(self):
-        df = self.events_df.copy()
-        df.drop('ADC', axis=1, inplace=True)
-        df.drop('TDC', axis=1, inplace=True)
-        df = self.addRunNumColumn(df)
-        name = "processed_data/run{}.csv.gz".format(self.runNum)
-        df.to_csv(name, header=True, index=False, compression='gzip')
-        print("{} has been created".format(name))
-        self.sendShantoEmail()
-
     def getCSVOutputFile(self, numEvents):
         df = self.events_df.copy()
         df.drop('ADC', axis=1, inplace=True)
         df.drop('TDC', axis=1, inplace=True)
+        df.drop('theta_x1', axis=1, inplace=True)
+        df.drop('theta_y1', axis=1, inplace=True)
+        df.drop('theta_x2', axis=1, inplace=True)
+        df.drop('theta_y2', axis=1, inplace=True)
+        df.drop('z_angle', axis=1, inplace=True)
         df = self.addRunNumColumn(df)
         name = "processed_data/run{}.csv".format(self.runNum)
         numEvents += 1
@@ -494,6 +407,10 @@ class MuonDataFrame:
         txt = fLine + sLine + tLine + foLine
         return txt
 
+    def getMuSpeedPlot(self, pdf=False):
+        x = self.getHistogram("speed", range=[0, 1], pdf=pdf)
+        return x
+
     def generateAnaReport(self, pdfName="", reload=True):
         print("Creating the report pdf...")
         if pdfName == "":
@@ -513,9 +430,6 @@ class MuonDataFrame:
             self.getDeadtimePlot(pdf=True)
             pdf.savefig()
             plt.close()
-            # self.getMuonRate(1000, pdf=False)
-            # pdf.savefig()
-            # plt.close()
             self.getChannelStatusPlot(pdf=True)
             pdf.savefig()
             plt.close()
@@ -525,21 +439,6 @@ class MuonDataFrame:
             self.getPDFPlot("ADC0", 100, [0, 100], "ADC Channel 0", pdf=True)
             pdf.savefig()
             plt.close()
-            self.getPDFPlot("ADC1", 100, [0, 100], "ADC Channel 1", pdf=True)
-            pdf.savefig()
-            plt.close()
-            self.getPDFPlot("ADC2", 512, [0, 1024], "ADC Channel 2", pdf=True)
-            pdf.savefig()
-            plt.close()
-            try:
-                self.getPDFPlot("ADC3",
-                                512, [0, 1024],
-                                "ADC Channel 3",
-                                pdf=True)
-                pdf.savefig()
-                plt.close()
-            except:
-                pass
             try:
                 self.getADCPlots(pdf=True)
                 pdf.savefig()
@@ -1403,10 +1302,6 @@ class MuonDataFrame:
         x = self.getHistogram("deadtime", pdf=pdf)
         return x
 
-    def getMuSpeedPlot(self, pdf=False):
-        x = self.getHistogram("speed", range=[0, 1], pdf=pdf)
-        return x
-
     def getPDFPlot(self, term, nbin, range, title="", pdf=False):
         xmin, xmax = range
         nbins = self.getBins(xmin, xmax, nbin)
@@ -1555,7 +1450,59 @@ class MuonDataFrame:
             plt.show()
         else:
             return fig
-          def getADCPlots(self, pdf=False, nbin=10):
+
+    def getMuonRate(self, mu_num_thresh_hold, pdf=False):
+        self.classifyDateTime()
+        self.getSerializedTimes()
+        ms2min = 1.6666666666666667 * 10**(-8)
+        times = self.get("time") * ms2min
+        mu_num = self.get("event_num")
+        colors = [
+            'red' if x == "day" else 'blue' for x in self.get("time_of_day")
+        ]
+        time_arr = []
+        color = []
+        for i in range(len(mu_num)):
+            if mu_num[i] % mu_num_thresh_hold == 0:
+                time_arr.append(times[i])
+                color.append(colors[i])
+
+        time_diff = np.diff(np.array(time_arr))
+        mu_rate = np.array(mu_num_thresh_hold / time_diff)
+        xvals = np.array([i for i in range(len(mu_rate))])
+
+        day = np.array(color) == "red"
+        night = np.array(color) == "blue"
+
+        fig, axes = plt.subplots(nrows=1, ncols=2)
+        plt.suptitle("Muon Rate (number/min)")
+        ax0, ax1 = axes.flatten()
+
+        ax0.scatter(xvals[day[1:]],
+                    mu_rate[day[1:]],
+                    color='orange',
+                    label="day",
+                    s=0.9)
+        ax0.scatter(xvals[night[1:]],
+                    mu_rate[night[1:]],
+                    color='blue',
+                    label="night",
+                    s=0.9)
+        ax0.legend()
+        ax0.set_xlabel("Number of times 1000 muons were recorded")
+        ax0.set_ylabel("Muon Rate")
+        ax1.hist(mu_rate[night[1:]], label="night", histtype="step", bins=15)
+        ax1.hist(mu_rate[day[1:]], label="day", histtype="step", bins=15)
+        ax1.set_xlabel("Muon Rate")
+        plt.legend()
+        fig.tight_layout()
+        self.events_df = self.og_df
+        if not pdf:
+            plt.show()
+        else:
+            return fig
+
+    def getADCPlots(self, pdf=False, nbin=10):
         "Inputs: self-> string, pdf=False->string, nbin =10->int
         "Outputs: ADC Channels with all their means, standard deviations and x axis values"
         "Process: It takes each channel and puts it into a list and find each channel's mean standard deviation and 
@@ -1780,7 +1727,7 @@ class MuonDataFrame:
         else:
             return fig
 
-  def getChannelPlots(self, pdf=False, nbin=200):
+    def getChannelPlots(self, pdf=False, nbin=200):
         "Inputs: self-> not sure, pdf=False->string, nbin =10->int"
         "Outputs: 12 different ADC channel histograms"
         "Process: the code takes each individual channel and plots its hisogram, its axes and the mean standard
@@ -3138,4 +3085,5 @@ class MuonDataFrame:
             s[query] = scrubbedDataFrame(self.events_df, query, numStd)[query]
         ax = s.plot.hist(alpha=0.7, bins=nbins, histtype='step')
         plt.title("Histogram of {} (Events within {} std dev)".format(
-            str(queries)
+            str(queries), numStd))
+        plt.show()
